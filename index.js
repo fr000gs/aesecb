@@ -1,3 +1,8 @@
+/*
+Copyright fr000gs
+Licensed under GNU AGPL 3.0
+made for my personal use
+*/
 import { fromByteArray, toByteArray, byteLength }
 from "./b64.js";
 import { ECB } from "./ecb.js";
@@ -99,4 +104,3 @@ function copyOutput() {
 
 document.getElementById("copyoutput")
   .addEventListener("click", copyOutput, false);
-

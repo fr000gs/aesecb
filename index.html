@@ -82,16 +82,5 @@
       <button id="copyoutput">Copy</button>
     </div>
   </div>
-  <script>
-    // Auto-resize textareas on input
-    document.querySelectorAll('textarea').forEach(textarea => {
-      textarea.addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = this.scrollHeight + 'px';
-      });
-      // Resize on page load if there's pre-filled content
-      textarea.dispatchEvent(new Event('input'));
-    });
-  </script>
 </body>
 </html>

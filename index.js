@@ -32,7 +32,6 @@ function pkcs7Unpad(paddedBytes) {
 }
 
 function cut16(text) {
-  // Return first 16 characters, padded with spaces if necessary
   return text.slice(0, 16).padEnd(16);
 }
 
@@ -85,10 +84,64 @@ function decbtns() {
   }
 }
 
-document.getElementById("encbtn")
-  .addEventListener("click", encbtns, false);
-document.getElementById("decbtn")
-  .addEventListener("click", decbtns, false);
+//auto resize code starts
+
+document.addEventListener("DOMContentLoaded", function () {
+  
+  function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
+
+  function handleEncryption() {
+        try {
+      const inputText = document.getElementById("inputtext").value;
+      const key = cut16(document.getElementById("key").value);
+      const encryptedText = aesecbenc(inputText, key);
+
+      const outputArea = document.getElementById("encdec");
+      outputArea.value = encryptedText;
+      autoResize(outputArea);
+    } catch (error) {
+      console.error("Encryption error:", error);
+    }
+  }
+
+  function handleDecryption() {
+        try {
+      const inputText = document.getElementById("inputtext").value;
+      const key = cut16(document.getElementById("key").value);
+      const decryptedText = aesecbdec(toByteArray(inputText), key);
+
+      const outputArea = document.getElementById("encdec");
+      outputArea.value = decryptedText;
+      autoResize(outputArea);
+    } catch (error) {
+      console.error("Decryption error:", error);
+    }
+  }
+
+  function copyOutput() {
+        const output = document.getElementById("encdec").value;
+    navigator.clipboard.writeText(output)
+      .then(() => alert("Copied to clipboard!"))
+      .catch(err => console.error("Copy failed:", err));
+  }
+
+  // Add event listeners
+  document.getElementById("encbtn").addEventListener("click", handleEncryption);
+  document.getElementById("decbtn").addEventListener("click", handleDecryption);
+  document.getElementById("copyoutput").addEventListener("click", copyOutput);
+
+  // Make sure textareas auto-resize
+  document.querySelectorAll('textarea').forEach(textarea => {
+    textarea.addEventListener('input', function () {
+      autoResize(this);
+    });
+    autoResize(textarea); // Resize if pre-filled
+  });
+
+  });
 
 function copyOutput() {
   navigator.clipboard.writeText(
@@ -98,5 +151,26 @@ function copyOutput() {
   .catch(err => console.error("Copy failed:", err));
 }
 
-document.getElementById("copyoutput")
-  .addEventListener("click", copyOutput, false);
+function autoResize(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  // Auto-resize input textareas on input
+  document.querySelectorAll('textarea').forEach(textarea => {
+    textarea.addEventListener('input', function () {
+      autoResize(this);
+    });
+    autoResize(textarea); // Resize on load if pre-filled
+  });
+
+  // Hook into encryption/decryption buttons to resize output textarea
+  document.getElementById('encbtn').addEventListener('click', () => {
+    setTimeout(() => autoResize(document.getElementById('encdec')), 10);
+  });
+
+  document.getElementById('decbtn').addEventListener('click', () => {
+    setTimeout(() => autoResize(document.getElementById('encdec')), 10);
+  });
+});

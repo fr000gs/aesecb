@@ -36,119 +36,42 @@ function cut16(text) {
 }
 
 function aesecbenc(text, key) {
-  const paddedTextBytes = pkcs7Pad(text, 16);
-  const keyBytes = encoder.encode(key);
-  const aesEcb = new ECB(keyBytes);
-  const encryptedBytes = new Uint8Array(paddedTextBytes.length);
+  try {
+    const paddedTextBytes = pkcs7Pad(text, 16);
+    const keyBytes = new TextEncoder().encode(key);
+    const aesEcb = new ECB(keyBytes);
+    const encryptedBytes = new Uint8Array(paddedTextBytes.length);
+    for (let i = 0; i < paddedTextBytes.length; i += 16) {
+      const block = paddedTextBytes.slice(i, i + 16);
+      const encryptedBlock = new Uint8Array(16);
+      aesEcb.encrypt(block, encryptedBlock);
+      encryptedBytes.set(encryptedBlock, i);
+    }
 
-  for (let i = 0; i < paddedTextBytes.length; i += 16) {
-    const block = paddedTextBytes.slice(i, i + 16);
-    const encryptedBlock = new Uint8Array(16);
-    aesEcb.encrypt(block, encryptedBlock);
-    encryptedBytes.set(encryptedBlock, i);
+    return fromByteArray(encryptedBytes);
+  } catch (error) {
+    document.getElementById("encdec").value = "Decryption error: " + error.message;
+    return "";
   }
-  return fromByteArray(encryptedBytes);
 }
 
 function aesecbdec(encryptedBytes, key) {
-  const keyBytes = encoder.encode(key);
-  const aesEcb = new ECB(keyBytes);
-  const decryptedPaddedBytes = new Uint8Array(encryptedBytes.length);
-
-  for (let i = 0; i < encryptedBytes.length; i += 16) {
-    const block = encryptedBytes.slice(i, i + 16);
-    const decryptedBlock = new Uint8Array(16);
-    aesEcb.decrypt(block, decryptedBlock);
-    decryptedPaddedBytes.set(decryptedBlock, i);
-  }
-  
-  const unpaddedBytes = pkcs7Unpad(decryptedPaddedBytes);
-  return decoder.decode(unpaddedBytes);
-}
-
-function encbtns() {
-  const inputText = document.getElementById("inputtext").value;
-  const key = cut16(document.getElementById("key").value);
-  const encryptedText = aesecbenc(inputText, key);
-  document.getElementById("encdec").textContent = encryptedText;
-}
-
-function decbtns() {
-  const ciphertext = document.getElementById("inputtext").value;
-  const key = cut16(document.getElementById("key").value);
   try {
-    const decryptedText = aesecbdec(toByteArray(ciphertext), key);
-    document.getElementById("encdec").textContent = decryptedText;
-  } catch (e) {
-    document.getElementById("encdec").textContent = "Decryption error: " + e.message;
-  }
-}
-
-//auto resize code starts
-
-document.addEventListener("DOMContentLoaded", function () {
-  
-  function autoResize(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
-  }
-
-  function handleEncryption() {
-        try {
-      const inputText = document.getElementById("inputtext").value;
-      const key = cut16(document.getElementById("key").value);
-      const encryptedText = aesecbenc(inputText, key);
-
-      const outputArea = document.getElementById("encdec");
-      outputArea.value = encryptedText;
-      autoResize(outputArea);
-    } catch (error) {
-      console.error("Encryption error:", error);
+    const keyBytes = new TextEncoder().encode(key);
+    const aesEcb = new ECB(keyBytes);
+    const decryptedPaddedBytes = new Uint8Array(encryptedBytes.length);
+    for (let i = 0; i < encryptedBytes.length; i += 16) {
+      const block = encryptedBytes.slice(i, i + 16);
+      const decryptedBlock = new Uint8Array(16);
+      aesEcb.decrypt(block, decryptedBlock);
+      decryptedPaddedBytes.set(decryptedBlock, i);
     }
+
+    return new TextDecoder().decode(pkcs7Unpad(decryptedPaddedBytes)); // Remove padding
+  } catch (error) {
+    document.getElementById("encdec").value = "Decryption error: " + error.message;
+    return "";
   }
-
-  function handleDecryption() {
-        try {
-      const inputText = document.getElementById("inputtext").value;
-      const key = cut16(document.getElementById("key").value);
-      const decryptedText = aesecbdec(toByteArray(inputText), key);
-
-      const outputArea = document.getElementById("encdec");
-      outputArea.value = decryptedText;
-      autoResize(outputArea);
-    } catch (error) {
-      console.error("Decryption error:", error);
-    }
-  }
-
-  function copyOutput() {
-        const output = document.getElementById("encdec").value;
-    navigator.clipboard.writeText(output)
-      .then(() => alert("Copied to clipboard!"))
-      .catch(err => console.error("Copy failed:", err));
-  }
-
-  // Add event listeners
-  document.getElementById("encbtn").addEventListener("click", handleEncryption);
-  document.getElementById("decbtn").addEventListener("click", handleDecryption);
-  document.getElementById("copyoutput").addEventListener("click", copyOutput);
-
-  // Make sure textareas auto-resize
-  document.querySelectorAll('textarea').forEach(textarea => {
-    textarea.addEventListener('input', function () {
-      autoResize(this);
-    });
-    autoResize(textarea); // Resize if pre-filled
-  });
-
-  });
-
-function copyOutput() {
-  navigator.clipboard.writeText(
-    document.getElementById("encdec").textContent
-  )
-  .then(() => alert("Copied to clipboard!"))
-  .catch(err => console.error("Copy failed:", err));
 }
 
 function autoResize(textarea) {
@@ -156,16 +79,69 @@ function autoResize(textarea) {
   textarea.style.height = textarea.scrollHeight + 'px';
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  // Auto-resize input textareas on input
-  document.querySelectorAll('textarea').forEach(textarea => {
-    textarea.addEventListener('input', function () {
-      autoResize(this);
-    });
-    autoResize(textarea); // Resize on load if pre-filled
-  });
+function handleEncryption() {
+  try {
+    const inputText = document.getElementById("inputtext").value;
+    const key = cut16(document.getElementById("key").value);
+    const encryptedText = aesecbenc(inputText, key);
 
-  // Hook into encryption/decryption buttons to resize output textarea
+    const outputArea = document.getElementById("encdec");
+    outputArea.value = encryptedText;
+    autoResize(outputArea);
+  } catch (error) {
+    document.getElementById("encdec").value = "Decryption error: " + error.message;
+  }
+}
+
+function handleDecryption() {
+  try {
+    const inputText = document.getElementById("inputtext").value;
+    const key = cut16(document.getElementById("key").value);
+    const decryptedText = aesecbdec(toByteArray(inputText), key);
+
+    const outputArea = document.getElementById("encdec");
+    outputArea.value = decryptedText;
+    autoResize(outputArea);
+  } catch (error) {
+    document.getElementById("encdec").value = "Decryption error: " + error;
+  }
+}
+
+function pasteInput() {
+  navigator.clipboard.readText()
+    .then(text => {
+      document.getElementById("inputtext").value = text;
+    })
+    .catch(err => {
+      document.getElementById("encdec").value = "Error: Unable to paste!";
+    });
+}
+
+// Add event listener for Paste button
+
+function copyOutput() {
+  const output = document.getElementById("encdec").value;
+  navigator.clipboard.writeText(output)
+    .then(() => console.log("Copied to clipboard!"))
+    .catch(err => alert("Copy failed:", err));
+}
+
+
+function setupEventListeners() {
+  document.getElementById("encbtn").addEventListener("click", handleEncryption);
+  document.getElementById("decbtn").addEventListener("click", handleDecryption);
+  document.getElementById("copyoutput").addEventListener("click", copyOutput);
+document.getElementById("pastebtn").addEventListener("click", pasteInput);
+
+  /*
+  document.getElementById("encbtn").addEventListener("click", aesecbenc);
+  document.getElementById("decbtn").addEventListener("click", aesecbdec);
+  document.getElementById("copyoutput").addEventListener("click", copyOutput);
+  */
+
+
+  //auto resize code starts
+
   document.getElementById('encbtn').addEventListener('click', () => {
     setTimeout(() => autoResize(document.getElementById('encdec')), 10);
   });
@@ -173,4 +149,12 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById('decbtn').addEventListener('click', () => {
     setTimeout(() => autoResize(document.getElementById('encdec')), 10);
   });
-});
+  document.querySelectorAll('textarea').forEach(textarea => {
+    textarea.addEventListener('input', function () {
+      autoResize(this);
+    });
+    autoResize(textarea); // Resize on load if pre-filled
+  });
+}
+
+document.addEventListener("DOMContentLoaded", setupEventListeners);
